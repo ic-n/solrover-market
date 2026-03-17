@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+perp_program = "7kzDLnYDxvtX5HAK2jPcGBqToTCv5L5eVXA4Wf7qBn1b"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test --manifest-path tests/Cargo.toml -- --nocapture"

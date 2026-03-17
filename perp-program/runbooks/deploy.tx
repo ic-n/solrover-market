@@ -1,0 +1,34 @@
+// SolRover Perp — surfpool deployment runbook
+//
+// Usage:
+//   surfpool start --manifest-file-path ../txtx.yml
+//   txtx run runbooks/deploy.tx --manifest-path ../txtx.yml --env development
+
+// ── Fund test wallets and deploy the program ─────────────────────────────────
+action "setup" "svm::setup_surfnet" {
+    description = "Fund wallets and deploy the SolRover perp program"
+
+    // Authority / payer wallet — must match ANCHOR_WALLET / ~/.config/solana/id.json
+    set_account {
+        public_key = signer.authority.public_key
+        lamports    = 10000000000  // 10 SOL
+    }
+
+    // Alice test wallet
+    set_account {
+        public_key = signer.alice.public_key
+        lamports    = 10000000000  // 10 SOL
+    }
+
+    // Bob test wallet
+    set_account {
+        public_key = signer.bob.public_key
+        lamports    = 5000000000   // 5 SOL
+    }
+
+    // Deploy the compiled perp program
+    deploy_program {
+        program_id  = svm::get_program_from_anchor_project("perp_program")
+        binary_path = "../target/deploy/perp_program.so"
+    }
+}

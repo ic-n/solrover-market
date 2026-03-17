@@ -1,0 +1,12 @@
+[package]
+name = "tests"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[dependencies]
+anchor-client = "0.32.1"
+anchor-lang = "0.32.1"
+perp-program = { version = "0.1.0", path = "../programs/perp-program" }
+solana-sdk = "~2.2"
+shellexpand = "3"

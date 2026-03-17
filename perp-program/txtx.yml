@@ -1,0 +1,13 @@
+---
+name: solrover-perp
+runbooks:
+  - name: Deploy SolRover Perp
+    description: Deploy the perp market program and fund test wallets
+    location: ./runbooks/deploy.tx
+environments:
+  development:
+    network_id: localnet
+    rpc_api_url: http://localhost:8899
+  devnet:
+    network_id: devnet
+    rpc_api_url: https://api.devnet.solana.com
