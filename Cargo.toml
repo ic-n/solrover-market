@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "simple-amm",
+    "perp-engine",
+]
+exclude = [
+    "vendor/percolator",
+]
+resolver = "2"

@@ -1,0 +1,9 @@
+[package]
+name = "perp-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+simple-amm = { path = "../simple-amm" }
+# feature "test" sets MAX_ACCOUNTS=64 (adequate for this demo/PoC)
+percolator = { path = "../vendor/percolator", features = ["test"] }

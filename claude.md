@@ -10,9 +10,38 @@ This is a demo/proof-of-concept, not a production deployment. No Solana program,
 
 ## Project Structure
 
-TBD
+```
+web3/
+├── Cargo.toml                        # workspace root (excludes vendor/percolator)
+├── claude.md                         # this file
+├── roadmap.md                        # phased plan
+├── simple-amm/
+│   └── src/lib.rs                    # constant-product AMM (~200 lines, 8 unit tests)
+├── perp-engine/
+│   ├── src/lib.rs                    # PerpEngine wrapper + assert_conservation helper
+│   └── tests/integration.rs         # 6 integration tests (all passing)
+├── vendor/
+│   └── percolator/                   # vendored risk engine (DO NOT MODIFY)
+│       ├── src/percolator.rs
+│       └── src/i128.rs
+└── docs/integration/                 # reference docs
+```
 
-docs/integration has some docs
+### Phase status
+
+- **Phase 0** ✅ — workspace + vendor wired, `cargo build` clean
+- **Phase 1** ✅ — `simple-amm` complete, all unit tests pass
+- **Phase 2** ✅ — `perp-engine` wrapper complete
+- **Phase 3** ✅ — all 6 integration tests pass (`cargo test -- --nocapture`)
+- **Phase 4** — polish (README, clippy, fmt) — not yet done
+
+---
+
+## Workspace Notes
+
+- `vendor/percolator` must be **excluded** from the workspace root (it declares its own workspace); add `exclude = ["vendor/percolator"]` to `Cargo.toml`.
+- Use `features = ["test"]` on the percolator dependency to get `MAX_ACCOUNTS = 64` for tests.
+- Set `max_crank_staleness_slots = u64::MAX` in `RiskParams` to disable the crank-freshness check in the test harness.
 
 ---
 
@@ -223,6 +252,12 @@ Use round numbers that make the narrative readable:
 
 8. **Checked arithmetic everywhere.** Use `.checked_mul()`, `.checked_div()`, `.saturating_sub()`. Overflow must error, not wrap.
 
+9. **Trading fees come from capital, not PnL.** `execute_trade` deducts `fee` from `user.capital` (spec §8.1). Test assertions that check "principal is untouched" should snapshot capital *after* trades, then compare before/after the stressful event — not against the raw deposit amount.
+
+10. **NoOpMatcher → exec_price == oracle_price → trade PnL = 0.** With `NoOpMatcher`, `execute_trade` always sets `exec_price = oracle_price`. After `settle_mark_to_oracle`, `entry_price` is already at oracle, so `price_diff = 0` and trade PnL is zero. All profit/loss accrues via subsequent `settle_mark_to_oracle` calls (on touch or crank).
+
+11. **`I128`/`U128` wrappers.** Percolator uses BPF-safe wrapper types. Access raw values with `.get()` (returns `i128`/`u128`). Construct with `I128::new(val)` / `U128::new(val)`. Constants: `I128::ZERO`, `U128::ZERO`.
+
 ---
 
 ## Build and Test Commands
@@ -263,6 +298,6 @@ cd vendor/percolator && cargo kani
 ## References
 
 - `vendor/percolator/spec.md` — the normative spec. Read this before writing any engine code.
-- `ROADMAP-PERCOLATOR-PERPS.md` — phased plan with exit criteria.
-- Percolator README — high-level context on the ADL replacement model.
+- `roadmap.md` — phased plan with exit criteria.
+- `vendor/percolator/README.md` — high-level context on the ADL replacement model.
 - Tarun Chitra, _Autodeleveraging: Impossibilities and Optimization_, arXiv:2512.01112, 2025.
