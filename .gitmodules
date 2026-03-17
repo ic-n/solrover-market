@@ -1,0 +1,3 @@
+[submodule "vendor/percolator"]
+	path = vendor/percolator
+	url = git@github.com:aeyakovenko/percolator.git
