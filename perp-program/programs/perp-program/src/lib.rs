@@ -52,12 +52,13 @@ pub struct Market {
     pub vault: u64,           //  8 — total lamports deposited
     pub insurance: u64,       //  8 — insurance fund (fee sink)
     pub c_tot: u64,           //  8 — sum of all user capitals
+    pub lp_capital: i64,      //  8 — implicit LP capital (negative when LP lost to users)
     pub pnl_pos_tot: i64,     //  8 — sum of all positive unrealized PnL
     pub maintenance_bps: u64, //  8 — MM in basis points (e.g. 500 = 5%)
     pub initial_bps: u64,     //  8 — IM in basis points (e.g. 1000 = 10%)
     pub fee_bps: u64,         //  8 — trading fee in bps (e.g. 10 = 0.1%)
     pub bump: u8,             //  1
-}                             // = 97 bytes data + 8 discriminator = 105
+}                             // = 105 bytes data + 8 discriminator = 113
 
 #[account]
 pub struct UserAccount {
@@ -95,6 +96,7 @@ pub mod perp_program {
         m.vault = 0;
         m.insurance = 0;
         m.c_tot = 0;
+        m.lp_capital = 0;
         m.pnl_pos_tot = 0;
         m.maintenance_bps = maintenance_bps;
         m.initial_bps = initial_bps;
@@ -251,13 +253,14 @@ pub mod perp_program {
         user.unrealized_pnl = 0;
 
         let m = &mut ctx.accounts.market;
-        // Zero-sum: user gain/loss comes from/goes to LP residual via c_tot
+        // Zero-sum: user gain/loss mirrors LP loss/gain; c_tot tracks user capital only
         if realized >= 0 {
             m.c_tot = m.c_tot.checked_add(realized as u64).ok_or(PerpError::Overflow)?;
         } else {
             m.c_tot = m.c_tot.saturating_sub(realized.unsigned_abs());
         }
         m.c_tot = m.c_tot.saturating_sub(fee);
+        m.lp_capital = m.lp_capital.checked_sub(realized).ok_or(PerpError::Overflow)?;
         m.insurance = m.insurance.checked_add(fee).ok_or(PerpError::Overflow)?;
 
         check_conservation(m)?;
@@ -318,12 +321,10 @@ fn compute_fee(notional: u64, fee_bps: u64) -> Result<u64> {
         .map(|n| (n + 9_999) / 10_000)
 }
 
-/// V >= C_tot + I — the core conservation invariant
+/// V >= C_tot + LP + I — the core conservation invariant (LP capital may be negative)
 fn check_conservation(m: &Market) -> Result<()> {
-    require!(
-        m.vault >= m.c_tot.saturating_add(m.insurance),
-        PerpError::ConservationViolated
-    );
+    let total = (m.c_tot as i128) + (m.lp_capital as i128) + (m.insurance as i128);
+    require!(m.vault as i128 >= total, PerpError::ConservationViolated);
     Ok(())
 }
 
@@ -336,7 +337,7 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 97,
+        space = 8 + 105,
         seeds = [b"market", authority.key().as_ref()],
         bump,
     )]

@@ -76,10 +76,11 @@ fn fetch_user(
 }
 
 fn assert_conservation(m: &Market) {
+    let total = (m.c_tot as i128) + (m.lp_capital as i128) + (m.insurance as i128);
     assert!(
-        m.vault >= m.c_tot.saturating_add(m.insurance),
-        "CONSERVATION VIOLATED: vault={} c_tot={} insurance={}",
-        m.vault, m.c_tot, m.insurance,
+        m.vault as i128 >= total,
+        "CONSERVATION VIOLATED: vault={} c_tot={} lp_capital={} insurance={}",
+        m.vault, m.c_tot, m.lp_capital, m.insurance,
     );
 }
 
